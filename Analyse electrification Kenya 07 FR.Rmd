@@ -1,0 +1,525 @@
+---
+title: "Analyse des déterminant de l'accès à l'électricicté au Kenya"
+author: "Florent Bédécarrats (ERS/EVA)"
+date: "18 février 2016"
+output:
+  html_document:
+    code_folding: hide
+    highlight: tango
+    theme: united
+    toc: yes
+    toc_float: yes
+  word_document: default
+---
+
+> RÉSUMÉ : On testel'utilité des enquête ménages pour l'instruction et le suivi-évaluation de projets de l'AFD dans le secteur énergétique. On analyse ici les données brutes de l'EDS kenyane de 2014 pour tirer des éléments susceptible d'informer l'instruction d'un projet visant à favoriser l'accès à l'électricité en milieu rural au Kenya par des mini-réseaux opérés par des intervenants privés.
+
+
+# Introduction
+
+Avec l'avènement de l'*Open Data*, la quantité, la diversité et la qualité des données librement disponibles en ligne a explosé. Nombreuses sont celles qui concernent les géographies et les secteurs d'intervention de l'Agence française de développement (AFD). La division de l'évaluation de l'AFD (EVA) souhaite aider les équipes projets à mieux exploiter ces bases de données administratives, systèmes d'information opérationnels, imagerie satellitaire, big data ou encore enquêtes ménages. Concernant ces dernières, il s'agit de données d'enquêtes sur la situation socio-sanitaire (EDS, MICS) ou socio-économique (LSMS, ENV) des ménages, sur les perceptions de la gouvernance (Afrobaromètre), sur les entreprises, ou encore le secteur agricole. L'exploitation de ces sources peut fournir, gratuitement et sans délais, des informations pertinentes et fiables pour décrire et comprendre plus précisément le contexte et les enjeux d'interventions afin d'étayer l'analyse en phase d'instruction des projets. Elle fournit également des éléments comparables sur les résultats de développement au début, en cours et à l'achèvement des projets qui s'avéreront précieux pour l'évaluation. En 2015, une dizaine de projets ont fait l'objet d'appuis de ce type par EVA dans le domaine de l'eau et de la santé. On cherche en 2016 à diversifier et amplifier ces appuis, en les étendant notamment aux projets de la division transport et énergies durables (TED).  
+
+On teste ici l'opportunité et la faisabilité d'exploiter les données de l'enquête démographique et de santé (EDS) menée tous les quatre ans au Kenya et dont la dernière date de 2014, pour informer un projet AFD en cours d'instruction. Celui-ci vise à améliorer l'électrification des ménages ruraux kenyans  en fournissant des incitations financières et une assistance technique à des initiatives privées de constitutions de mini-réseaux de distribution électrique à partir d'énergies renouvelables.  
+
+L'analyse est réalisée avec le logiciel gratuit et open source R. Le présent document est généré automatiquement sous R en "Mardown". C'est-à-dire que le rapport inclut les scripts de calcul. Ceci permet de mettre à jour automatiquement l'ensemble des résultats si une données ou un paramètre est modifié. Cela facilite surtout la vérification et la reproduction de ces analyses par d'autres. Les blocs de code peuvent être masqués pour une communication plus synthétique.  
+
+# Présentation de l'enquête
+
+Les enquêtes démographiques et de santé ont été fondées par USAID en 1984 et sont presque systématiquement soutenues par UNFPA, ainsi que, selon les pays, par des bailleurs impliqués localement qui décident d'appuyer ce travail. Elles sont aussi cofinancées par les autorités nationales et leur mise en œuvre est confiée aux instituts nationaux de statistique. Une entreprise privée contractante d'USAID (Macro International) assure une supervision méthodologique et opérationnelle étroite, ainsi qu'un contrôle de qualité approfondi, en mobilisant un réseau de chercheurs et de spécialistes de ces enquêtes. Toutes ces enquêtes reposent sur une batterie standard d'indicateurs, harmonisée avec ceux des enquêtes de type MICS (enquêtes aréolaires à indicateurs multiples), coordonnées par UNICEF. Les enquêtes MICS et EDS sont la principale source de données sur la santé, l'éducation ou les conditions de vie des populations, pour la plupart des bases de données internationales, qu'il s'agisse des données sur le développement de la Banque mondiale, du Joint monitoring programme, de l'Organisation mondiale de la Santé, du suivi des objectifs du millénaire pour le développement, et demain des objectifs de développement durable.
+
+Les enquêtes démographiques et de santé reposent sur un échantillonnage aréolaire stratifié à deux degrés. C’est-à-dire qu’on part d’un zonage du territoire national comprenant plusieurs milliers d’aires, comportant chacune un nombre équivalent de ménages selon le dernier recensement. On organise un tirage aléatoire pour sélectionner plusieurs centaines d’aires (1612 dans le cas de l'enquête kenyane de 2014) afin de s’assurer qu’on aura une représentation adéquate (c.-à-d. avec une erreur standard nécessairement inférieure à 2%) au niveau des régions et entre milieu rural et urbain. Ensuite, dans chacune d’une de ces aires, on effectue un recensement exhaustif de la population et on tire au sort 25 ménages dans chacun. 
+
+L'enquête démographique et de santé kenyane de 2014 a été conçue pour produire des estimations représentatives de la plupart des indicateurs au niveau national, pour les zones rurales et urbaines séparément, au niveau régional et pour certains indicateurs au niveau des 47 comtés du territoire. Pour cela, un échantillon particulièrement important a été sélectionné, comportant 40 300 ménages, localisés dans 1 612 aires, dont 995 en milieu rural et 617 en milieu urbain. L'enquête a été menée entre mai et octobre 2014. 
+
+> Précision technique : La représentativité de l’enquête dépend du fait que tous les ménages du territoire avaient la même chance d’être tirés au sort. Leur mode de tirage permet à ces enquêtes de s’assurer (à la différence d’un sondage téléphonique ou d’une RCT par exemple) que tout le monde avait une chance d’être tirée au sort. Des disparités de populations entre aire peuvent toutefois biaiser l’équiprobabilité. La comparaison entre le nombre de ménages tirés au sort dans chaque aire par rappot au nombre total de ménages résidant dans l'aire permet de calculer une pondération traduisant sa probabilité de tirage et qui permettra de la corriger dans l’ensemble des calculs. A partir du moment où les probabilités de tirage est connue pour chaque individu et chaque paire d’individus tirés au sort, on peut calculer à partir de l’échantillon des estimations applicables à l’ensemble de la population et calculer la fiabilité de ces estimations au moyen de la méthode [Horvitz-Thompson](https://en.wikipedia.org/wiki/Horvitz%E2%80%93Thompson_estimator), que nous emploierons dans le reste du document.
+
+# Préparation des données
+
+Le rapport de l'enquête démographique et de santé kenyane de 2014 est disponible sur le site [http://dhsprogram.com](http://dhsprogram.com). Ce document ne contient cependant d'estimation du taux d'électrification des ménages qu'à l'échelle nationale (36,0%, cf. figure 1) et par milieu rural (12,6%) et urbain (68,4%). Pour obtenir les données brutes de l'EDS, il suffit de remplir un court formulaire de demande sur le site  et après validation (en quelques heures), de le télécharger directement depuis la liste où sont disponibles toutes les enquêtes. Plusieurs fichiers sont disponibles pour chaque enquête : données par ménage, par femme, par individu, par naissance et coordonnées GPS des aires d'enquêtes. Compte tenu de l'objet de la présente analyse De nombreux formats sont disponibles, on ne téléchargera que les données par ménages et la localisation des aires. Plusieurs formats sont disponibles (SPSS, STATA, SAS, flat...). On a ici choisi le format SPSS (.sav).
+
+36% au niveau national, avec 68,4% en milieu urbain et 12,6%
+
+Une fois téléchargées, on charge la base de données.
+```{r message=FALSE, warning=FALSE}
+# NB : tout ce qui sur une ligne suit un "#" n'est pas exécuté et sert à commenter le code
+library(haven) # module R utilisé pour importer des données au format SPSS
+hh_ken <- read_spss("Data/KEHR70FL.SAV")  # On importe les données
+```
+
+
+La base contient plusieurs centaines de variables. On va se contenter des variables suivantes : 
+
+- HV001 : cluster number
+- HV002 : Household number
+- HV023 : Stratification used in sample
+- HV005 : Household sample weight
+- HV009 : Number of household members
+- HV024 : Region (Coast, North Eastern, Eastern, Central, Rift, West, Nyanza, Nairobi)
+- SHREGION : Region number
+- SHCOUNT : County number
+- HV025 : Type of place of residence (rural, urban)
+- HV026 : Place of residence (Capital, large city, small city, town, countryside)
+- HV206 : The household has electricity
+- HV207 : Has radio
+- HV208 : Has television
+- HV209 : Has refrigerator
+- HV226 : Main type of cooking fuel used by the household
+- HV243A : Has a mobile telephone
+- HV247 : Has bank account
+- HV270 : Wealth index quintile
+- HV271 : Wealth index score
+- SH110G : Solar panel
+- SH110N : Microwave
+- SH110O : DVD player
+- SH110P : Cassette or CD player
+- SH110A : Receives cash transfer or social assistance
+- SH118_A : Household owns this structure
+- SH123A : Not having food or money for food, last 7 days
+- HV107$01 : Highest educational level completed (head of household)
+
+```{r message=FALSE, warning=FALSE}
+# On ne retient que ces variables dans la base de données
+hh_ken <- hh_ken[,c("HV001", "HV002", "HV005", "HV021", "HV009", "HV024", "HV023", 
+                    "SHCOUNTY", "HV025", "HV206", "HV207", "HV208", "HV209", "HV226", 
+                    "HV243A", "HV247", "HV270", "HV271", "SH110G","SH110N", "SH110O", 
+                    "SH110P", "SH110_A", "SH118_A", "SH123A", "HV107$01")]
+# On renomme ces variables pour une meilleure lisibilité des codes ultérieurs
+colnames(hh_ken) <- c("cluster", "hh_num", "weight", "sample_unit", "hh_members", 
+                      "region", "strata", "county","urban_rural", "has_elec", 
+                      "has_radio", "has_tv", "has_frizer", "cook_fuel", "has_gsm", 
+                      "has_bkaccount", "wealth_quintile", "wealth_index", 
+                      "has_solarpanel", "has_mwave", "has_dvd", "has_cdk7", 
+                      "receiv_trsfr", "owns_dwelling", "food_insecure", "head_educ")
+```
+
+On charge aussi les données de localisation des aires d'enquête et les limites administratives des [régions](http://spatialdata.dhsprogram.com/boundaries/#view=table&countryId=KE) et des [counties](http://www.arcgis.com/home/item.html?id=5f83ca29e5b849b8b05bc0b281ae27bc). Pour agrémenter les cartes, on télécharge aussi les [données de cartographies des réseaux de production et de distribution d'électricité au Kenya](http://www.infrastructureafrica.org/documents/search?Sector=244&Theme=All&Country=46&REC=All).
+
+```{r message=FALSE, warning=FALSE}
+# chargement des modules requis pour l'analyse spatiale sous R
+library(rgdal)
+library(maptools)
+library(plyr)
+
+# import des données géographiques
+counties_map <- readOGR(dsn="Data", layer="County")
+regions_map <- readOGR(dsn="Data", layer="sdr_subnational_boundaries")
+aires_map  <- readShapePoints("Data/KEGE71FL.shp")
+plants_map <- readShapePoints("Data/Kenya Power Plants")
+transmission_map <- readShapeLines("Data/Kenya Electricity Transmission Network")
+```
+
+# Analyse et visualisations
+
+## Visualisation des taux d'accès par aire d'enquête
+
+A seules fin de visualisation, on calcule des moyennes d'accès sur la base des 25 ménages par aires d'enquête. Les estimations n'ont pas vocation à être précisément représentatives de chaque zone, mais cela donne une première illustration visuelle de la répartition des lignes.
+
+```{r message=FALSE, warning=FALSE}
+# On calcule les taux par aire
+aires_elec <- stats::aggregate(hh_ken$has_elec, list(hh_ken$cluster), mean)
+aires_elec[,2] <- aires_elec[,2]*100
+colnames(aires_elec) <- c("DHSCLUST", "Taux_electrification")
+aires_elec_map <- as.data.frame(aires_map@coords)
+aires_elec_map$DHSCLUST <- aires_map@data$DHSCLUST
+aires_elec_map <- base::merge(aires_elec, aires_elec_map, by="DHSCLUST")
+aires_elec_map$OBJECTID <- "" # ou ajouter inheritance = null dans aes du graph
+aires_elec_map <- aires_elec_map[aires_elec_map$coords.x1 != 0,]
+# A ce stade, on a un le tableau avec les taux par aires
+
+# On prépare un fond de carte avec les counties
+library(ggplot2) # module utilisé pour les graphiques
+counties_map@data$id <- rownames(counties_map@data)
+counties_map_pt <- fortify(counties_map, regions="id")
+counties_map_back <- join(counties_map_pt, counties_map@data, by="id")
+
+# On représente nos données par aire sur ce fond de carte
+# On paramètre la carte
+ggplot(counties_map_back) +
+  aes(long, lat, group=OBJECTID) +
+  geom_polygon(fill="white") +
+  geom_path(color="grey20") +
+  coord_equal()+
+  geom_point(data=aires_elec_map, aes(x=coords.x1, y=coords.x2, 
+                                      colour=Taux_electrification))+
+  scale_colour_gradient(low="black", high="yellow", name="   %")+
+  ggtitle("Households having electricity\nby survey cluster\n(source: DHS 2014 raw data)")
+```
+
+
+## Recalcul des taux d'accès national, rural et urbain
+
+Grâce au module R intitulé Survey et développé par Thomas Lumley, de l'Université d'Auckland, on peut aisément utiliser les données brute de l'EDS kenyane de 2014 pour produire des statistiques respectant l'état de l'art pour le traitement des enquêtes complexes. A ce stade, on veillera à analyser non seulement les estimations, mais également les marges d'erreur. Ces dernières pourront être omises pour des communications plus grand public si on considère qu'elles sont suffisamment faibles pour être négligeables.
+
+On commence par s'assurer que la méthode de calcul produit bien les mêmes résultats que dans le rapport de l'enquête DHS pour les ratios d'électrification au niveau national et par milieu rural et urbain.
+
+```{r message=FALSE, warning=FALSE}
+# On charge le package survey
+library(survey) 
+# on passe les pondérations en base 1
+hh_ken$weight <- hh_ken$weight/1000000
+# On spécifie l'échantillonage à prendre en compte pour les estimations
+dhs_design <- svydesign(ids=~sample_unit+hh_num, strata=~strata, weights=~weight,
+                       data=hh_ken)
+
+# On calcule le taux d'électrification pour l'ensemble de la population
+svymean(~has_elec, design=dhs_design, na.rm=TRUE)
+
+# On calcule le taux d'électrification pour l'ensemble 
+svyby(~has_elec, by=~urban_rural, design=dhs_design, FUN=svymean, na.rm=TRUE)
+
+```
+
+On constate que ces chiffres correspondent bien, après arrondi à la première décimale de pourcentage, aux ratios calculés dans le rapport de l'enquête démographique et de santé kenyane de 2015 : Un taux d'électrification de 36% au niveau national, avec 68,4% en milieu urbain et 12,6% en milieu rural.  
+  
+**Figure 1 : Extrait du rapport EDS Kenya 2014 relatif à l'accès à l'électrification**  
+
+![Extrait du rapport EDS Kenya 2014](Capture DHS report p15 electricity ratios.png)    
+Source : rapport EDS Kenya 2014, p. 15.
+
+## Taux d'électrification par comté
+
+Après cette vérification de la validité de notre méthode de calcul, on passe à des estimations au niveau des comtés.
+
+```{r message=FALSE, warning=FALSE}
+# calcul des moyennes d'electrifications par comté
+count_elec <- svyby(~has_elec, by=~county, design=dhs_design, FUN=svymean, na.rm=TRUE)
+
+# On remplace les numéros de comtés par leur nom
+county_names <- c("Mombasa", "Kwale", "Kilifi", "Tana River", "Lamu", "Taita Taveta", 
+                  "Garissa","Wajir", "Mandera", "Marsabit", "Isiolo", "Meru", "Tharaka", 
+                  "Embu", "Kitui", "Machakos", "Makueni","Nyandarua", "Nyeri", 
+                  "Kirinyaga", "Murang'a", "Kiambu", "Turkana", "West Pokot", "Samburu", 
+                  "Trans Nzoia", "Uasin Gishu", "Keiyo-Marakwet", "Nandi", "Baringo", 
+                  "Laikipia", "Nakuru", "Narok", "Kajiado", "Kericho", "Bomet", 
+                  "Kakamega", "Vihiga", "Bungoma", "Busia", "Siaya", 
+                  "Kisumu", "Homa Bay", "Migori", "Kisii", "Nyamira", "Nairobi") 
+count_elec$county <- county_names
+
+# On passe en pourcentage (base 1 -> 100)
+count_elec[,2:3] <- round(count_elec[,2:3]*100, digits = 1)
+
+# On renome les colonnes pour l'affichage
+colnames(count_elec) <- c("County", "Taux d'électrification", "Erreur standard (95%)")
+# On génère la table
+library(knitr) # module facilitant les rendus de tableaux en Markdown
+kable(count_elec, row.names=FALSE)
+
+```
+
+La troisième colonne du tableau signifie qu'on est sûrs à 95% de se situer entre l'estimation plus ou moins l'erreur standard indiquée. Ainsi, pour Nairobi (dernière ligne), on estime que le taux d'électrification pour la population totale est de 86,8%. On sait qu'il y a 95% de chances pour que le taux réel soit compris entre 83,7% (86,8 - 3,1) et 89,9% (86,8 + 3,1).
+
+On génère une carte pour représenter graphiquement ces estimations.
+
+```{r message=FALSE, warning=FALSE}
+# on renome la première colonne pour qu'elle ait le même nom que dans le fond de carte
+colnames(count_elec) <- c("COUNTY", "Electrification", "Erreur")
+# On intègre ces données dans le fond de carte des comtés
+counties_map@data <- merge(counties_map@data, count_elec, by="COUNTY")
+counties_map_elec <- join(counties_map_pt, counties_map@data, by="id")
+
+# On projette la carte
+ggplot(counties_map_elec) +
+  aes(long, lat, group=OBJECTID, fill=Electrification)+
+  geom_polygon()+
+  geom_path(color="white") +
+  coord_equal()+
+  ggtitle("Households having electricity by county\n(source: DHS 2014 raw data)")+
+  scale_fill_gradient(low="black", high="yellow", name="   %")
+
+```
+
+On peut également projeter la même carte en représentant les infrastructures énergétiques (lignes à haute tension et centrales)
+
+```{r message=FALSE, warning=FALSE}
+# On prépare les données cartographiques
+transmission_map@data$id <- rownames(transmission_map@data)
+transmission_map@data$OBJECTID <- "id"
+transmission_map_pt <- fortify(transmission_map, regions="id")
+transmission_map_df <- join(transmission_map_pt, transmission_map@data, by="id")
+
+plants_map2 <- as.data.frame(plants_map@coords)
+
+ggplot(counties_map_elec) +
+  aes(long, lat, group=OBJECTID, fill=Electrification)+
+  geom_polygon()+
+  scale_fill_gradient(low="black", high="yellow")+ 
+  geom_path(color="white") +
+  coord_equal()+
+  ggtitle("Part des ménages ayant accès à l'électricité")+
+  geom_path(data=transmission_map_df, aes(long, lat), color="red", 
+            , inherit.aes = FALSE)+
+  geom_point(data=plants_map2, aes(x=coords.x1, y=coords.x2), 
+             show.legend=TRUE, colour="red", inherit.aes = FALSE)
+  
+  
+
+```
+
+
+# Taux d'électrification par quintile de niveau de vie
+
+On peut tout d'abord observer comment se répartit la richesse au plan national en représentant les comtés en fonction de la part de leur population appartenant aux deux premiers quintiles au niveau national (ie. seuil retenu par l'ODD n° 10, cible n°1: "By 2030, progressively achieve and sustain income growth of the bottom 40 per cent of the population at a rate higher than the national average" )
+
+```{r message=FALSE, warning=FALSE}
+# On crée une variable d'appartenance aux deux premiers quintiles
+hh_ken$bottom40 <- ifelse(hh_ken$wealth_quintile < 3, 1, 0)
+
+# On actualise le survey design pour qu'il inclue bien cette nouvelle variable
+dhs_design <- svydesign(ids=~sample_unit+hh_num, strata=~strata, weights=~weight,
+                       data=hh_ken)
+
+# On calcule les taux par comté
+count_bot40 <- svyby(~bottom40, by=~county, design=dhs_design, FUN=svymean, na.rm=TRUE)
+
+# On inclut les noms dans le tableau
+count_bot40$county <- county_names
+
+# On passe en pourcentage (base 1 -> 100)
+count_bot40[,2:3] <- round(count_bot40[,2:3]*100, digits = 1)
+
+# On incorpore les données dans la carte
+colnames(count_bot40) <- c("COUNTY", "Defavorises", "Erreur")
+counties_map@data <- merge(counties_map@data, count_bot40, by="COUNTY")
+counties_map_bot <- join(counties_map_pt, counties_map@data, by="id")
+
+# On projette la carte avec ces données
+ggplot(counties_map_bot) +
+  aes(long, lat, group=OBJECTID, fill=Defavorises)+
+  geom_polygon()+
+  geom_path(color="white") +
+  coord_equal()+
+  ggtitle("Households belonging to\nthe wealth bottom 40% by county")+
+  scale_fill_gradient(low="green", high="red", name="   %")
+
+```
+
+
+On observe une relation très claire entre la part des ménages démunis vivant dans un comté et la part de la population qui est électrifiée.
+
+On va maintenant regarder comment est-ce qu'au niveau de l'ensemble des ménages au niveau national, l'accès à l'électricité est associée au niveau de vie.
+
+```{r message=FALSE, warning=FALSE}
+# On estime le taux par quintile avec l'intervalle de confiance (ci)
+elec_quintile <- svyby(~has_elec, by=~wealth_quintile, design=dhs_design, 
+                       FUN=svymean, na.rm=TRUE, vartype = c("ci"))
+# On arrondit
+elec_quintile[,2:4] <- round(elec_quintile[,2:4]*100, digits=1)
+# On donne un nom aux quintiles
+elec_quintile$wealth_quintile <- c("Poorest", "Poorer", 
+                                   "Average", "Richer", 
+                                   "Richest")
+# On projette le tout
+ggplot(elec_quintile, aes(x=wealth_quintile, y=has_elec))+
+  geom_errorbar(aes(ymin=ci_l, ymax=ci_u), width=.1, position=position_dodge(0.1))+
+  geom_line(position=position_dodge(0.1))+
+  geom_point(position=position_dodge(0.1))+
+  xlab("Household wealth quintile")+
+  ylab("% of the household having electricity")+
+  ggtitle("Access to electricity according to wealth level\n(source: DHS 2014 raw data)")+
+  theme (axis.text.x = element_text(angle=90, vjust=0.5, size=11))
+
+```
+
+On voit bien qu'avec un tel échantillonage, les marges d'erreurs sont extrêmement faibles. L'électrification apparaît très clairement liée au niveau de vie au Kenya. En particulier, on remarque l'existence d'un seuil très fort entre les trois premiers quintiles, qui ont un taux d'accès inférieur à 10% et les deux quintiles suivants qui ont un taux d'accès largement supérieur.
+
+Toutefois, la correspondance entre niveau de vie et l'électrification est probablement surestimée. L'appréciation du niveau de vie repose sur plusieurs critères : la composition du ménage (actifs/inactifs), de la qualité du logement et de la possession de certains actifs. Parmi ces derniers, certains dépendent de l'électricité dans leur fonctionnement. On a donc très probablement une auto-corrélation entre niveau de vie tel qu'estimé dans l'EDS et électrification. Les enquêtes sur le budget des ménages permettent d'estimer beaucoup plus précisément leur niveau de vie.
+
+# Taux d'accès à des paneaux solaires par comté
+
+```{r message=FALSE, warning=FALSE}
+# calcul des taux d'équipements en paneaux solaires par comté
+count_sol <- svyby(~has_solarpanel, by=~county, design=dhs_design, 
+                   FUN=svymean, na.rm=TRUE)
+
+# On inclut les noms dans le tableau
+count_sol$county <- county_names
+
+# On passe en pourcentage (base 1 -> 100)
+count_sol[,2:3] <- round(count_sol[,2:3]*100, digits = 1)
+
+# On renome les colonnes pour l'affichage
+colnames(count_sol) <- c("County", "Ménages avec panneaux solaires", 
+                         "Erreur standard (95%)")
+
+# On projette le tableau
+kable(count_sol, row.names=FALSE)
+
+# On incorpore les données dans la carte
+colnames(count_sol) <- c("COUNTY", "Photovoltaique", "Erreur")
+counties_map@data <- merge(counties_map@data, count_sol, by="COUNTY")
+counties_map_sol <- join(counties_map_pt, counties_map@data, by="id")
+
+# On projette la carte avec ces données
+ggplot(counties_map_sol) +
+  aes(long, lat, group=OBJECTID, fill=Photovoltaique)+
+  geom_polygon()+
+  geom_path(color="white") +
+  coord_equal()+
+  ggtitle("Households using solar panels\n(source: DHS 2014 raw data)")+
+  scale_fill_gradient(low="black", high="orange", name="   %")
+
+```
+
+
+# Modélisation des déterminants de l'accès à l'électricité
+
+On cherche à calculer pour chaque ménage interrogé la distance qui sépare son aire de résidence à une ligne à moyenne ou basse tension. Ces données sont disponible [au niveau de la compagnie nationale d'électricité](https://datahub.io/dataset/kenya-electricity-grid-network-map-2014/resource/16307aa5-4c0b-4277-b4b1-bea049bf145f). N'ayant pas pu les obtenir à ce stade, on procède à une approximation en prenant comme référence le tracé des lignes à haute et moyenne tension, mis en ligne par la Banque africaine de développement. Ce calcul étant programmé, il pourra aisément être actualisé si la cartographie du réseau à moyenne et basse tension nous est transmise.
+
+Pour calculer ces distances, on a essayé deux méthodes sous R (fonction gDistance du module R rgeos et fonction dist2line du module R geosphere), qui malheureusement ne donnent pas de bons résultats pour les lignes : elles ne calculent que la distance des aires par rapport aux lignes à proprement parler, mais avec leur début, à leur fin ou leurs angles. Cette caractéristique est problématique car certains tracés de lignes à hautes tensions comportent des segments très longs et certaines aires du centre-Est par exemple apparaissaient très éloignés alors qu'une ligne à haute tension passait à proximité.
+
+Une solution pourrait sans doute être trouvée sous R, mais par souci de rapidité, nous avons recalculé ces distances avec le système d'information géographique QGIS (open source également), qui offre une interface très pratique pour le faire (module NNJoint). Après export de ces calculs en csv, nous les importons donc dans R pour les utiliser pour l'analyse. 
+
+```{r message=FALSE, warning=FALSE}
+# On importe les fichiers créés sous R
+distance_cluster_pwrline  <- read.csv("Data/distance cluster_pwrline.csv", header = TRUE)
+distance_cluster_pwrplant <- read.csv("Data/distance cluster_pwrplant.csv", header = TRUE)
+
+
+# On incorpore les valeurs dans le fichier de carto des aires d'enquête
+aires_elec_map$dist2pwrline <- distance_cluster_pwrline$distance[
+  match(aires_elec_map$DHSCLUS, distance_cluster_pwrline$DHSCLUS)]/1000
+aires_elec_map$dist2pwrplant <- distance_cluster_pwrplant$distance[
+  match(aires_elec_map$DHSCLUS, distance_cluster_pwrline$DHSCLUS)]/1000
+# On calcule la distance à l'infrastructure (ligne ou centrale) la plus proche
+aires_elec_map$dist2pwrinfra <- ifelse(aires_elec_map$dist2pwrline <= 
+                                         aires_elec_map$dist2pwrplant, 
+                                       aires_elec_map$dist2pwrline, 
+                                       aires_elec_map$dist2pwrplant)
+
+# On représente graphiquement ces valeurs
+ggplot(counties_map_back) +
+  aes(long, lat, group=OBJECTID) +
+  geom_polygon(fill="white") +
+  coord_equal()+
+  geom_point(data=aires_elec_map, inherit.aes = FALSE, 
+             aes(x=coords.x1, y=coords.x2, colour=dist2pwrline))+
+  scale_colour_gradient(low="red", high="blue", space="Lab", "Distance (km)")+
+  ggtitle("Distances des aires d'enquête\nà une ligne à haute tension")+
+  geom_path(data=transmission_map_df, aes(long, lat), color="black", 
+            inherit.aes = FALSE)+
+  geom_point(data=plants_map2, aes(x=coords.x1, y=coords.x2), 
+             show.legend=TRUE, colour="black", inherit.aes = FALSE)
+
+
+aires_map_dist <- base::merge(aires_elec, aires_elec_map, by="DHSCLUST")
+
+ggplot(aires_map_dist)+
+  geom_point(aes(x=aires_elec_map$dist2pwrinfra, y=aires_elec_map$Taux_electrification))+
+  ggtitle("Taux d'électrification des aires en fonction 
+          de leur distance à une ligne moyenne ou haute tension")+
+  xlab("Distance des aires à une ligne moyenne ou haute tension")+
+  ylab("Part des ménages ayant accès\nà l'électricité")
+
+# On incorpore ces valeurs dans notre base ménages
+hh_ken$dist2pwrinfra <- aires_elec_map$dist2pwrinfra[
+  match(hh_ken$cluster,aires_elec_map$DHSCLUST)]
+hh_ken$dist2pwrline <- aires_elec_map$dist2pwrline[
+  match(hh_ken$cluster,  aires_elec_map$DHSCLUST)]
+```
+
+On voit à l'examen des différentes cartes projetées plus haut que la résidence en zone rurale, le niveau de vie et l'éloignement aux infrastructures énergétiques sont visiblement fortement corrélés à l'accès à l'électricité. On peut toutefois se demander comment ces paramères intéragissent, car les cartes montrent que ce sont les ménages les plus pauvres tendent à résider dans les zones rurales très éloignés des infrastructures. Est-ce que l'un de ces facteurs domine et explique en réalisté les autres. Une régression à partir de ces données permettra de comprendre leur importance relative.
+
+Modèle logit incluant distance avec ligne à haute tension, niveau de vie et localisation en milieu rural.
+
+
+```{r message=FALSE, warning=FALSE}
+# On crée une variable rural
+hh_ken$rural <- as.numeric(hh_ken$urban_rural-1)
+
+# On actualise la description de l'enquête pour qu'elle inclue la nouvelle variable
+dhs_design <- svydesign(ids=~sample_unit+hh_num, strata=~strata, weights=~weight,
+                       data=hh_ken)
+
+# On paramètre un modèle global
+logit_acces_elec <- svyglm(has_elec~dist2pwrinfra+rural+wealth_quintile, 
+                           design=dhs_design, family=quasibinomial())
+
+summary.glm(logit_acces_elec, statistic="Chisq")
+
+# Les coefficients expriment un log de l'odds ratio, on les passe donc en exponentielle
+exp(logit_acces_elec$coefficients)
+
+# On calcule le R2
+R2 <- 1-logit_acces_elec$deviance/logit_acces_elec$null.deviance
+print(R2)
+```
+
+
+Compte tenu des astérisques apparaissant dans la dernière colonne du premier tableau (résultats du modèle), on voit que les critères rural et niveau de vie apparaissent comme déterminants pour l'accès à l'électricité. La proximité à une infrastructure n'apparaît pas comme un facteur significatif, mais c'est sans doute dû au fait qu'on n'a ici que les lignes à moyenne et haute tension, alors que c'est logiquement la proximité à une ligne basse tension qui facilite les connexions. Cette analyse pourra facilement être actualisée après obtention des données complémentaires sur la localisation des lignes à basse et moyenne tension.  
+L'ensemble des coefficients affichés dans la première colonne du tableau ci-dessus traduit le logarithme de leur contribution relative à la probabilité qu'un ménage ait accès à l'électricité, cette dernière étant exprimée en logarithme. Une fois passés en exponentielle, on retrouve les rapports des cotes pour chaque unité de la variable considérée. Ainsi, pour le rural, cela signifie que vivre en zone rurale divise presque par 4 (rapport de cotes de 0,264 contre 1) la probabilité d'avoir accès à l'électricité. De la même manière, progresser d'un quintile de niveau de vie multiplie par 9 (rapport de cotes de 9,235 contre 1) la chance d'avoir accès à lélectricité. Enfin, si la relation avait été statistiquement significative, on aurait pu affirmer chaque kilomètre de distance en plus par rapport à une infrastructure énergétique diminuait de 0,5% (rapport de cotes de 0,995 contre 1) la chance d'avoir accès à lélectricite. Le R2 suggère que, l'ensemble de ce modèle expliquerait 60% de la variance observée dans l'enquête.
+
+Encore une fois, la contribution du niveau de vie est sans doute surestimée, car l'indice à partir duquel le niveau de vie est calculé comprend des actifs qui incluent des appareils électriques (télévision, réfrégirateur...). Un recalcul des indices de niveau de vie excluant les appareils électriques permettrait sans doute de mieux apprécier la contribution du niveau de vie à l'électrification.
+
+# Discussion des résultats
+
+## Pistes opérationnelles
+
+Ces éléments peuvent étayer certains choix en matière ciblage ou le  niveau de subventionnement du projet, pour prendre en compte une appréciation du potentiel d'accès, afin d'éviter d'éventuels effets pervers de favoriser les investissements à très petite échelle au détriment de l'ampleur de l'accès qu'ils permettent. L'analyse ci-dessus suggèrerait de combiner ce critères avec d'autres paramètres afin de tenir compte de l'ampleur (nombre de connexions) et de la profondeur (ménages particulièrement exclus de l'accès de par leurs caractéristiques). Ceci pourrait par exemple induire une subvention plus forte pour des projets d'une capacité supérieure si 1) ils concernent des comtés défavorisés, 2) sont orientés vers les zones rurales, selon la définition Kenyane et 3) s'ils touchent prioritairement des ménages appartenant aux deux premiers quintiles.
+
+## Perspectives pour l'évaluation
+
+A fortiori si elle réitère un échantillonnage aussi important qu'en 2014, la prochaine EDS kenyane, attendues autour de 2019, devrait fournir une source utile pour apprécier l'accroissement de l'accès permis par les mini-réseaux soutenus par le projet. Ceci à la condition que l'ampleur de ces mini-réseaux 1) soit suffisante pour avoir une chance d'être représentée dans un échantillonnage national et 2) soit documentée dans le cadre du projet (coordonnées géographiques des périmètres concernés).
+
+On peut aisément déduire de l'enquête EDS 2014 un questionnaire de 10 indicateurs non financiers (actifs détenus par les ménages, caractéristiques du logement, structure du ménage...) fortement corrélés avec le niveau de vie (proxy means test) qui peuvent servir ensuite à compléter des enquêtes très légères (applicable en 2-3 minutes par un agent pas spécialement formé aux enquêtes) permettant d’apprécier le niveau de vie de bénéficiaires finaux. En annexe un exemple de ce qui avait été fait au Kenya sur une enquête similaire quelques années auparavant.
+
+A noter que les sources mobilisées ici pourraient aisément se combiner avec d'autres : données détaillées d'exploitation des mini-réseaux, images satellitaires mesurant la luminosité nocturne (en accès libre), enquêtes ponctuelles.
+
+
+# Conclusion
+
+Le projet que l'on a essayé d'informer ayant une portée nationale, donc nous nous sommes concentrés à des analyses couvrant l'ensemble du territoire. Pour d'autres projets, on serait en mesure de resserrer la focale sur une zone plus circonscrite et de mettre l'accent sur un croisement avec d'autres données, contenues dans l'enquête ou provenant d'autres sources (autres enquêtes, données satellitaires, systèmes d'information des opérateurs, statistiques administratives). 
+
+-----------------------------
+
+# Annexe : exemple de questionnaire permettant d'estimer l'appartenance d'un ménage aux 40% les plus démunis
+
+Mesurer adéquatement le niveau de vie d'un ménage non salarié requiert normalement une enquête longue (2-3h environ). Les instituts nationaux de statistique réalisent ces enquêtes à intervalles réguliers – qui peuvent tout de même dépasser 5 ans dans certains pays africains – sur un échantillon représentatif de la population du pays. Le principe du PPI (ou d’autres outils dits de « propensity score index » (PPI, PAT, etc.) est le suivant : à partir de la base de données d'une enquête nationale, on dérive une liste courte d'indicateurs fortement corrélés avec le niveau de revenu du ménage. Les réponses à 10 questions simples, non financières et facilement vérifiables indiquent la probabilité qu'une personne soit pauvre, non pauvre ou au-dessous d’un seuil donné. Cette donnée n'est pas assez fiable au niveau individuel pour être pertinemment utilisée comme un outil de sélection des bénéficiaires : des marges d'erreurs subsistent et si les faux positifs (part faible mais non négligeables de non pauvres estimés pauvres) posent certaines difficultés, les faux négatifs (personnes véritablement pauvres qui n'apparaissent pas comme tel dans l'estimation) soulèvent de sérieux problèmes d'éthique et d'équité. Toutefois, appliqué à un échantillon de bénéficiaires, cet outil permet d'estimer à coût faible ou nul (si administré dans le cadre des opérations) et de manière fiable le niveau de vie moyen des bénéficiaire dans leur ensemble ou de sous-groupes de bénéficiaires, en les positionnant bien par rapport au niveau de vie de la population.
+
+Un outil de ce type a été élaboré à partir de l'enquête 2005-2006 sur le revenu des ménages au Kenya. Elle a permis de produire le questionnaire suivant, qui fournit un score dont les équivalences peuvent être trouvées dans les pages ultérieures. Une note technique concernant cette étude peut être trouvée à la page [http://www.microfinance.com/English/Papers/Scoring_Poverty_Kenya_EN_2005.pdf](http://www.microfinance.com/English/Papers/Scoring_Poverty_Kenya_EN_2005.pdf).
+
+![Questionaire PPI](PPI questionnaire.png)
+![Table d'équivalence 1](PPI lookup 1.png)
+![Table d'équivalence 2](PPI lookup 2.png)
+
+
+Annexe
+
+Cooking fuel
+```{r}
+# On précise que les type de combustible est une variable catégorielle
+hh_ken$cook_fuel <- factor(hh_ken$cook_fuel)
+# On actualise le design pour tenir compte de cette variable catégorielle
+dhs_design <- svydesign(ids=~sample_unit+hh_num, strata=~strata, weights=~weight,
+                       data=hh_ken)
+# On calcule les pourcentages
+test <- svyby(~cook_fuel, by=~has_elec, design=dhs_design, FUN=svymean, na.rm=TRUE, keep.var = FALSE)
+# Arrondi, base 100, inverse lignes-colonnes, enlève ligne 1
+test <- t(round(test, digits = 5)*100)[-1,]
+# On précise les noms de lignes et de colonnes
+colnames(test) <- c("without electricity", "with electricity")
+rownames(test) <- c("Electricity", "LPG/natural gas", "Biogaz", "Parafin/kerosene", "Coal/lignite", "Charcoal", "Wood", "Straw/shrubs/grass", "Agricultural crop", "Animal dung", "No food cooked in household", "Other")
+
+```
+
+Calcul du lien entre cooking fuel (V161) et ARI (H31) pour les enfants
+
+```{r}
+kids_ken <- read_spss("Data/KEKR70FL.SAV")  # On importe les données
+
+# On recode une variable "toux"
+kids_ken$cough <- 0
+kids_ken$cough[kids_ken$H31 == "1"] <- 1
+kids_ken$cough[kids_ken$H31 == "2"] <- 1
+
+# On paramètre l'enquête
+kids_design <- svydesign(ids=~V021+V002, strata=~V023, weights=~V005,
+                       data=kids_ken)
+
+cough_fuel <- svyby(~cough, by=~V161, design=kids_design,FUN=svymean, na.rm=TRUE)
+
+rownames(cough_fuel) <- c("Electricity", "LPG/natural gas", "Biogaz", "Parafin/kerosene", "Coal/lignite", "Charcoal", "Wood", "Straw/shrubs/grass", "Agricultural crop", "Animal dung", "No food cooked in household", "Other", "Incohérent")
+colnames(cough_fuel) <- c("code réponse", "avec toux", "marge d'erreur")
+cough_fuel <- (round(cough_fuel, digits = 5)*100)[-(12:13),-1]
+cough_fuel
+```
+
